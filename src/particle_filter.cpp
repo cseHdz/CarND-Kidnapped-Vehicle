@@ -222,9 +222,8 @@ void ParticleFilter::resample() {
   vector<Particles> r_particles;
   vector<double> p_weights;
   
-  // Setup the random bits
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  // Create a random engine for distributions
+  default_random_engine gen;
 
   // Setup the weights (in this case linearly weighted)
   for(int i=0; i<num_particles; ++i) {
