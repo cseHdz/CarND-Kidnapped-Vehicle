@@ -22,11 +22,12 @@ using std::string;
 using std::vector;
 
 using std::normal_distribution;
+using std::default_random_engine;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   
   // Create a random engine for distributions
-  std::default_random_engine gen;
+  default_random_engine gen;
   
   // Define the number of particles on the filer
   num_particles = 50;
@@ -63,7 +64,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    */
   
   // Create a random engine for distributions
-  std::default_random_engine gen;
+  default_random_engine gen;
   
   // Gaussian distributions around 0
   normal_distribution<double> dist_x(0, std[0]);
@@ -104,13 +105,14 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   during the updateWeights phase.
    */
 
+
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
                                    const Map &map_landmarks) {
   /**
-   * TODO: Update the weights of each particle using a mult-variate Gaussian 
+   * Update the weights of each particle using a mult-variate Gaussian 
    *   distribution. You can read more about this distribution here: 
    *   https://en.wikipedia.org/wiki/Multivariate_normal_distribution
    * NOTE: The observations are given in the VEHICLE'S coordinate system. 
@@ -122,7 +124,43 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
+  
+  // For each particle - determine which landmarks are within range
+  for (int i = 0; i < num_particles; i ++){
+    
+    double p_x = particle[i].x;
+    double p_y = particle[i].y;
+    double p_theta = particle[i].theta;
+    
+    // Convert observations from VEHICLE's coordinates to MAP's coordinates
+    vector<LandmarkObs> m_obs;
+    
+    for (int j = 0; j < observations.size(); j ++){
 
+      m_obs[j].x = p_x + cos(p_theta) * observations[j].x - sin(p_theta) * observations[j].y;
+      m_obs[j].y = p_y + sin(p_theta) * observations[j].x + cos(p_theta) * observations[j].y;
+
+    }
+    
+    // Find landmarks within the immediate vicinity of the vehicle
+    vector<LandMartkObs> predictions;
+     
+    for (int j = 0; j < map_landmarks.landmark_list.size(); j ++){
+      
+      int l_id = map_landmarks.landmark_list[j].id;
+      float l_x = map_landmarks.landmark_list[j].x;
+      float l_y = map_landmarks.landmark_list[j].y;
+       
+      // Potential Predictions for each particle
+      if(fabs(p_x - l_x) <= sensor_range && fabs(p_y - l_y) <= sensor_range){
+        LandmarkObs obs_p = {.id=l_id, .x=lm_x, .y=lm_y};
+        predictions.push_back(obs_p);
+      }    
+    }   
+    
+    // TODO: Link predictions with map observations
+    // TODO: Update the weight of the particle
+  }
 }
 
 void ParticleFilter::resample() {
