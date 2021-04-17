@@ -159,7 +159,34 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     }   
     
     // TODO: Link predictions with map observations
-    // TODO: Update the weight of the particle
+    // based on the observation that is closest
+    
+    // Get the prediction for every observation
+    for (int j = 0; j < m_obs.size(); j ++){
+      
+      double obs_x = m_obs[i].x;
+      double obs_y = m_obs[i].y;
+      
+      // Changed during assocaition
+      double pre_id = m_obs[i].id;
+        
+      // Get coordinates of best landmark
+      double pre_x = prediction[pre_id].x;
+      double pre_y = prediction[pre_id].y;
+      
+      // Update the weight of the particle
+
+      double gauss_norm;
+      double exponent;
+      double sig_x = std_landmark[0];
+      double sig_y = std_landmark[1];
+
+      // Multi-gaussian distribution
+      gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+      exponent = (pow(pre_x - obs_x, 2) / (2 * pow(sig_x, 2))) 
+                  + (pow(pre_y - obs_y, 2) / (2 * pow(sig_y, 2)));
+
+      particles[i] = gauss_norm * exp(-exponent);
   }
 }
 
