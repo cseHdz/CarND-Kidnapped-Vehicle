@@ -23,6 +23,7 @@ using std::vector;
 
 using std::normal_distribution;
 using std::default_random_engine;
+using std:discrete_distribution;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   
@@ -97,15 +98,34 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
                                      vector<LandmarkObs>& observations) {
   /**
-   * TODO: Find the predicted measurement that is closest to each 
+   * Find the predicted measurement that is closest to each 
    *   observed measurement and assign the observed measurement to this 
    *   particular landmark.
    * NOTE: this method will NOT be called by the grading code. But you will 
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    */
-
-
+  
+  for (int i = 0; i < observations.size(); i ++){
+    
+    // Iterate through each particle to determine how far it is.
+    int best_id;
+    double min_dist = 999999; 
+    for (int j =0; j < predicted.size(); j ++){
+     
+      double dist = dist(observation[i].x, predicted[j].x,
+                         observation[i].y, predicted[j].y);
+      
+      // Determine if the landmark is the closest
+      if(dist < min_dist){
+        min_dit = dist;
+        best_id = predicted[j].id;
+      }
+    }
+    
+    observations[i].id = best_id;
+    
+  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -158,8 +178,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       }    
     }   
     
-    // TODO: Link predictions with map observations
-    // based on the observation that is closest
+    // Link predictions with map observations
+    // based on the landmark that is closest to each observation
+    dataAssociation(predictions, m_obs);
     
     // Get the prediction for every observation
     for (int j = 0; j < m_obs.size(); j ++){
@@ -186,18 +207,49 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       exponent = (pow(pre_x - obs_x, 2) / (2 * pow(sig_x, 2))) 
                   + (pow(pre_y - obs_y, 2) / (2 * pow(sig_y, 2)));
 
-      particles[i] = gauss_norm * exp(-exponent);
+      particles[i].weight = gauss_norm * exp(-exponent);
   }
 }
 
 void ParticleFilter::resample() {
   /**
-   * TODO: Resample particles with replacement with probability proportional 
+   * Resample particles with replacement with probability proportional 
    *   to their weight. 
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
+  
+  vector<Particles> r_particles;
+  vector<double> p_weights;
+  
+  // Setup the random bits
+  std::random_device rd;
+  std::mt19937 gen(rd());
 
+  // Setup the weights (in this case linearly weighted)
+  for(int i=0; i<num_particles; ++i) {
+    p_weights.push_back(i);
+  }
+
+  double beta = 0.0;
+  double w_max = p_weights.end();
+  
+  // Uniform Distribution between 1 and N
+  std::discrete_distribution<> u(0, 2*w_max);
+  
+  // Sample based on Sebastian's suggestion
+  for(int i=0; i<num_particles; ++i) {
+    
+    beta += u(gen);
+    while (p_weights[index] < beta){
+      beta = beta - p_weights[index];
+      index = index + 1;
+    }
+    
+    r_particles.push_back(particles[index]);
+  }
+  
+  particles = r_particles;
 }
 
 void ParticleFilter::SetAssociations(Particle& particle, 
