@@ -177,30 +177,30 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       
       for (unsigned int k = 0; k < map_landmarks.landmark_list.size(); k ++){
 
-        int l_id = map_landmarks.landmark_list[k].id_i;
         float l_x = map_landmarks.landmark_list[k].x_f;
         float l_y = map_landmarks.landmark_list[k].y_f;
 
         // Potential Predictions for each particle
         if(fabs(p_x - l_x) <= sensor_range && fabs(p_y - l_y) <= sensor_range){
           
-          double o_dist = dist(obs_x, obs_y, lx_x l_y);
+          double o_dist = dist(l_x, l_y, obs_x, obs_y);
           
           // Determine if the landmark is the closest
           if(o_dist < min_dist){
             min_dist = o_dist;
-            best_id = l_id;
+            best_id = k;
           }
         }    
       }
       
       // Get coordinates of best landmark
-      float best_x = map_landmarks.landmark_list[best_id].x_f;
-      float best_y = map_landmarks.landmark_list[best_id].y_f;     
+      double best_x = map_landmarks.landmark_list[best_id].x_f;
+      double best_y = map_landmarks.landmark_list[best_id].y_f;     
       
       // Update the weight of the particle
       double gauss_norm;
       double exponent;
+      double weight;
       double sig_x = std_landmark[0];
       double sig_y = std_landmark[1];
 
@@ -209,9 +209,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       exponent = (pow(obs_x - best_x, 2) / (2 * pow(sig_x, 2))) 
                   + (pow(obs_y - best_y, 2) / (2 * pow(sig_y, 2)));
       
-      p_weight *= gauss_norm * exp(-exponent);     
+      weight = gauss_norm * exp(-exponent);     
+      p_weight *= weight;
           
-      associations.push_back(best_id+1);
+      associations.push_back(best_id + 1);
       sense_x.push_back(obs_x);
       sense_y.push_back(obs_y);     
     }
@@ -219,7 +220,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     SetAssociations(particles[i],associations,sense_x,sense_y);
     
     particles[i].weight = p_weight;
-    weights[i] = p_weight; 
+    weights[i] = particles[i].weight; 
   }
 }
 
