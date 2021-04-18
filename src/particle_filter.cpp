@@ -77,8 +77,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     
     // Determine whether the yaw rate is approx. zero
     if(fabs(yaw_rate) < 0.00001){
-      x_f += velocity * delta_t + velocity * cos(theta_0);
-      y_f += velocity * delta_t + velocity * sin(theta_0);
+      x_f += velocity * delta_t * cos(theta_0);
+      y_f += velocity * delta_t * sin(theta_0);
     } 
     else {
       x_f += velocity/yaw_rate * (sin(theta_0 + yaw_rate * delta_t) - sin(theta_0));
