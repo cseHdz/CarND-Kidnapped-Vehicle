@@ -38,8 +38,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     Particle p;
     
    	// Initialize each particle with estimates on the position
-    p.id=i;
-    p.weight=1.0;
+    p.id = i;
+    p.weight = 1.0;
     
     p.x = dist_x(gen);
     p.y = dist_y(gen);
@@ -76,14 +76,20 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     double theta_f = theta_0;
     
     // Determine whether the yaw rate is approx. zero
-    if(fabs(yaw_rate) < 0.00001){
-      x_f += velocity * delta_t * cos(theta_0);
-      y_f += velocity * delta_t * sin(theta_0);
+    if(abs(yaw_rate) < 0.000001){
+      x_f += (velocity * delta_t * cos(theta_0));
+      y_f += (velocity * delta_t * sin(theta_0));
     } 
     else {
-      x_f += velocity/yaw_rate * (sin(theta_0 + yaw_rate * delta_t) - sin(theta_0));
-      y_f += velocity/yaw_rate * (cos(theta_0) - cos(theta_0 + yaw_rate * delta_t));
-      theta_f += yaw_rate * delta_t;
+      theta_f += (yaw_rate * delta_t);
+       
+      if (theta_f >= 2*M_PI){ theta_f = theta_f - 2*M_PI; }
+      if (theta_f < 0.0 ) { theta_f = theta_f + 2*M_PI; }
+      
+      x_f += (velocity/yaw_rate) * (sin(theta_f) - sin(theta_0));
+      y_f += (velocity/yaw_rate) * (cos(theta_0) - cos(theta_f));  
+      
+      
     }
     
     // Gaussian distributions around 0
@@ -95,7 +101,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     particles[i].x = dist_x(gen);
     particles[i].y = dist_y(gen);
     particles[i].theta = dist_theta(gen);
-      
+    
   }
 }
 
@@ -168,7 +174,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       double obs_y = p_y + sin(p_theta) * observations[j].x + cos(p_theta) * observations[j].y;
 
       int best_id;
-      double min_dist = 9999999.0; 
+      double min_dist = numeric_limits<double>::max();
       
       for (unsigned int k = 0; k < map_landmarks.landmark_list.size(); k ++){
 
@@ -201,8 +207,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
       // Multi-gaussian distribution
       gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
-      exponent = (pow(best_x - obs_x, 2) / (2 * pow(sig_x, 2))) 
-                  + (pow(best_y - obs_y, 2) / (2 * pow(sig_y, 2)));
+      exponent = (pow(obs_x - best_x, 2) / (2 * pow(sig_x, 2))) 
+                  + (pow(obs_y - best_y, 2) / (2 * pow(sig_y, 2)));
       
       p_weight *= gauss_norm * exp(-exponent);     
           
