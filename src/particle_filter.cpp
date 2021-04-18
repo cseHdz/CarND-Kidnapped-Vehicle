@@ -87,8 +87,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
       if (theta_f < 0.0 ) { theta_f = theta_f + 2*M_PI; }
       
       x_f += (velocity/yaw_rate) * (sin(theta_f) - sin(theta_0));
-      y_f += (velocity/yaw_rate) * (cos(theta_0) - cos(theta_f));  
-      
+      y_f += (velocity/yaw_rate) * (cos(theta_0) - cos(theta_f));        
       
     }
     
@@ -185,7 +184,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         // Potential Predictions for each particle
         if(fabs(p_x - l_x) <= sensor_range && fabs(p_y - l_y) <= sensor_range){
           
-          double o_dist = dist(obs_x, l_x, obs_y, l_y);
+          double o_dist = dist(obs_x, obs_y, lx_x l_y);
           
           // Determine if the landmark is the closest
           if(o_dist < min_dist){
