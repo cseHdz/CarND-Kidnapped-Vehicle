@@ -67,30 +67,34 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
   // Create a random engine for distributions
   default_random_engine gen;
   
-  // Gaussian distributions around 0
-  normal_distribution<double> dist_x(0, std_pos[0]);
-  normal_distribution<double> dist_y(0, std_pos[1]);
-  normal_distribution<double> dist_theta(0, std_pos[2]);
-  
   for (int i = 0; i < num_particles; i ++){
     
     double theta_0 = particles[i].theta;
     
+    double x_f = particles[i].x;
+    double y_f = particles[i].y;
+    double theta_f = theta_0;
+    
     // Determine whether the yaw rate is approx. zero
     if(fabs(yaw_rate) < 0.00001){
-      particles[i].x += velocity * delta_t + velocity * cos(theta_0);
-      particles[i].y += velocity * delta_t + velocity * sin(theta_0);
+      x_f += velocity * delta_t + velocity * cos(theta_0);
+      y_f += velocity * delta_t + velocity * sin(theta_0);
     } 
     else {
-      particles[i].x += velocity/yaw_rate * (sin(theta_0 + yaw_rate * delta_t) - sin(theta_0));
-      particles[i].y += velocity/yaw_rate * (cos(theta_0) - cos(theta_0 + yaw_rate * delta_t));
-      particles[i].theta += yaw_rate * delta_t;
+      x_f += velocity/yaw_rate * (sin(theta_0 + yaw_rate * delta_t) - sin(theta_0));
+      y_f += velocity/yaw_rate * (cos(theta_0) - cos(theta_0 + yaw_rate * delta_t));
+      theta_f += yaw_rate * delta_t;
     }
     
+    // Gaussian distributions around 0
+    normal_distribution<double> dist_x(x_f, std_pos[0]);
+    normal_distribution<double> dist_y(y_f, std_pos[1]);
+    normal_distribution<double> dist_theta(theta_f, std_pos[2]);
+    
     // Adding Random Gaussian Noise
-    particles[i].x += dist_x(gen);
-    particles[i].y += dist_y(gen);
-    particles[i].theta += dist_theta(gen);
+    particles[i].x = dist_x(gen);
+    particles[i].y = dist_y(gen);
+    particles[i].theta = dist_theta(gen);
       
   }
 }
@@ -164,13 +168,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       double obs_y = p_y + sin(p_theta) * observations[j].x + cos(p_theta) * observations[j].y;
 
       int best_id;
-      double min_dist = 999999.0; 
+      double min_dist = 9999999.0; 
       
-      for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j ++){
+      for (unsigned int k = 0; k < map_landmarks.landmark_list.size(); k ++){
 
-        int l_id = map_landmarks.landmark_list[j].id_i;
-        float l_x = map_landmarks.landmark_list[j].x_f;
-        float l_y = map_landmarks.landmark_list[j].y_f;
+        int l_id = map_landmarks.landmark_list[k].id_i;
+        float l_x = map_landmarks.landmark_list[k].x_f;
+        float l_y = map_landmarks.landmark_list[k].y_f;
 
         // Potential Predictions for each particle
         if(fabs(p_x - l_x) <= sensor_range && fabs(p_y - l_y) <= sensor_range){
@@ -226,35 +230,14 @@ void ParticleFilter::resample() {
   default_random_engine gen;
   
   vector<Particle> r_particles;
-  vector<double> p_weights;
-
-  // Setup the weights (in this case linearly weighted)
-  for(int i = 0; i<num_particles; ++i) {
-    p_weights.push_back(i);
-  }
-
-  double beta = 0.0;
-  double w_max = *max_element(p_weights.begin(), p_weights.end());
   
-  // Uniform Distribution between 1 and N
-  uniform_int_distribution<int> u_i(0, num_particles-1);
-  auto index = u_i(gen);
-  
-  uniform_real_distribution<double> u(0.0, w_max);
-  
-  // Sample based on Sebastian's suggestion
+  discrete_distribution<int> d(weights.begin(), weights.end());
+ 
   for(int i = 0; i < num_particles; ++i) {
-    
-    beta += u(gen) * 2.0;
-    while (p_weights[index] < beta){
-      beta -= p_weights[index];
-      index = (index + 1) % num_particles;
-    }
-    
-    r_particles.push_back(particles[index]);
-  }
-  
-  particles = r_particles;
+
+    r_particles.push_back(particles[d(gen)]);
+  }  
+  particles = std::move(r_particles);
 }
 
 void ParticleFilter::SetAssociations(Particle& particle, 
